@@ -550,7 +550,7 @@
 
                     // Prepare table data
                     const tableData = tasks.map(task => [
-                        task.description.length > 40 ? task.description.substring(0, 40) + '...' : task.description,
+                        task.description.length > 100 ? task.description.substring(0, 100) + '...' : task.description,
                         task.dueDate || 'No due date',
                         task.priority,
                         task.completed ? 'Completed' : 'Pending'
