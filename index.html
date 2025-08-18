@@ -447,6 +447,10 @@
             });
         }
 
+        /**
+         * Renders the tasks list based on the current filter.
+         * The index is used to provide chronological numbering.
+         */
         function renderTasks() {
             taskList.innerHTML = '';
 
@@ -457,6 +461,7 @@
                 noTasksMessage.classList.add('hidden');
             }
 
+            // Apply the filter
             let filteredTasks = tasks;
             if (currentTaskFilter === 'pending') {
                 filteredTasks = tasks.filter(task => !task.completed);
@@ -470,16 +475,21 @@
                 taskList.innerHTML = '<p class="text-center text-gray-500 py-8">No tasks match the current filter.</p>';
                 return;
             }
-
-            filteredTasks.forEach((task) => {
+            
+            // Loop through the filtered tasks and add the numbering
+            filteredTasks.forEach((task, index) => {
                 const taskElement = document.createElement('div');
                 const priorityColorClass = getPriorityColor(task.priority);
                 taskElement.className = `flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 rounded-lg shadow-sm border ${priorityColorClass} fade-in task-list-item`;
                 taskElement.innerHTML = `
-                    <div class="mb-2 sm:mb-0 flex-grow">
-                        <p class="font-semibold text-base sm:text-lg ${task.completed ? 'line-through text-gray-500' : 'text-gray-800'}">${task.description}</p>
-                        <p class="text-xs sm:text-sm text-gray-600">${task.dueDate ? `Due: ${task.dueDate}` : 'No due date'}</p>
-                        <p class="text-xs font-medium ${task.completed ? 'text-green-600' : 'text-blue-600'}">${task.completed ? 'Completed' : 'Pending'} | Priority: ${task.priority}</p>
+                    <div class="mb-2 sm:mb-0 flex-grow flex items-start">
+                        <!-- Add chronological numbering -->
+                        <span class="font-bold text-lg text-gray-800 mr-2">${index + 1}.</span>
+                        <div>
+                            <p class="font-semibold text-base sm:text-lg ${task.completed ? 'line-through text-gray-500' : 'text-gray-800'}">${task.description}</p>
+                            <p class="text-xs sm:text-sm text-gray-600">${task.dueDate ? `Due: ${task.dueDate}` : 'No due date'}</p>
+                            <p class="text-xs font-medium ${task.completed ? 'text-green-600' : 'text-blue-600'}">${task.completed ? 'Completed' : 'Pending'} | Priority: ${task.priority}</p>
+                        </div>
                     </div>
                     <div class="flex flex-wrap gap-2 sm:ml-4">
                         <button onclick="toggleTaskStatus('${task.id}')" class="px-3 py-1 rounded-md ${task.completed ? 'bg-yellow-500 hover:bg-yellow-600' : 'bg-green-500 hover:bg-green-600'} text-white font-semibold transition-colors text-sm">${task.completed ? 'Unmark' : 'Complete'}</button>
@@ -548,8 +558,9 @@
                     doc.text(`Completed: ${completedTasks}`, 14, 55);
                     doc.text(`Pending: ${pendingTasks}`, 14, 65);
 
-                    // Prepare table data
-                    const tableData = tasks.map(task => [
+                    // Prepare table data with numbering
+                    const tableData = tasks.map((task, index) => [
+                        index + 1, // Add numbering to the PDF
                         task.description.length > 100 ? task.description.substring(0, 100) + '...' : task.description,
                         task.dueDate || 'No due date',
                         task.priority,
@@ -559,7 +570,7 @@
                     // Add table
                     doc.autoTable({
                         startY: 75,
-                        head: [['Description', 'Due Date', 'Priority', 'Status']],
+                        head: [['No.', 'Description', 'Due Date', 'Priority', 'Status']],
                         body: tableData,
                         theme: 'grid',
                         styles: {
@@ -575,10 +586,12 @@
                             fontStyle: 'bold'
                         },
                         columnStyles: {
-                            0: { columnWidth: 60 },
-                            1: { columnWidth: 30 },
-                            2: { columnWidth: 25 },
-                            3: { columnWidth: 25 }
+                            // Adjust column widths to fit the new 'No.' column
+                            0: { columnWidth: 10 },
+                            1: { columnWidth: 60 },
+                            2: { columnWidth: 30 },
+                            3: { columnWidth: 25 },
+                            4: { columnWidth: 25 }
                         },
                         margin: { left: 14, right: 14 }
                     });
@@ -622,4 +635,3 @@
     </script>
 </body>
 </html>
-
