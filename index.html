@@ -615,35 +615,43 @@
             
             // Loop through the filtered tasks and add the numbering
             filteredTasks.forEach((task, index) => {
-                const taskElement = document.createElement('div');
-                const priorityColorClass = getPriorityColor(task.priority);
-                taskElement.className = `flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 bg-white rounded-lg shadow-sm border border-gray-200 transition-all duration-200 task-list-item fade-in ${task.completed ? 'opacity-60' : ''}`;
-                taskElement.innerHTML = `
-                    <div class="flex-grow">
-                        <h4 class="font-semibold text-gray-800 text-base sm:text-lg mb-1">${index + 1}. ${task.description}</h4>
-                        <div class="flex flex-wrap items-center text-sm space-x-2 text-gray-500 mt-1">
-                            ${task.dueDate ? `<span class="whitespace-nowrap">📅 ${task.dueDate}</span>` : ''}
-                            <span class="px-2 py-0.5 rounded-full border text-xs font-medium ${priorityColorClass}">${task.priority} Priority</span>
+                const taskItem = document.createElement('div');
+                taskItem.className = `task-list-item bg-gray-50 p-4 rounded-lg shadow-sm border border-gray-200 flex flex-col sm:flex-row justify-between items-center fade-in ${task.completed ? 'opacity-60' : ''}`;
+                taskItem.setAttribute('data-id', task.id);
+                
+                const dueDateText = task.dueDate ? `<span class="text-xs text-gray-500 mr-2">Due: ${new Date(task.dueDate).toLocaleDateString()}</span>` : '';
+                const completedClass = task.completed ? 'line-through text-gray-500' : 'text-gray-800';
+
+                const priorityColor = getPriorityColor(task.priority);
+                
+                taskItem.innerHTML = `
+                    <div class="flex-grow mb-2 sm:mb-0">
+                        <div class="flex items-center">
+                            <span class="mr-2 text-sm font-semibold text-gray-700">${index + 1}.</span>
+                            <span class="font-medium ${completedClass}">${task.description}</span>
+                        </div>
+                        <div class="mt-1 flex flex-wrap items-center text-sm">
+                            ${dueDateText}
+                            <span class="px-2 py-1 rounded-full text-xs font-medium border ${priorityColor}">${task.priority} Priority</span>
                         </div>
                     </div>
-                    <div class="flex flex-wrap space-x-2 mt-4 sm:mt-0">
-                        <button onclick="toggleTaskStatus('${task.id}')" class="px-3 py-1 rounded-lg ${task.completed ? 'bg-yellow-500 hover:bg-yellow-600 text-white' : 'bg-green-500 hover:bg-green-600 text-white'} transition-colors text-sm">
+                    <div class="flex-wrap flex gap-2">
+                        <button onclick="toggleTaskStatus('${task.id}')" class="px-3 py-1 text-sm rounded-lg font-semibold transition-colors ${task.completed ? 'bg-yellow-500 text-white hover:bg-yellow-600' : 'bg-green-500 text-white hover:bg-green-600'}">
                             ${task.completed ? 'Undo' : 'Complete'}
                         </button>
-                        <button onclick="editTask('${task.id}')" class="px-3 py-1 rounded-lg bg-blue-500 text-white hover:bg-blue-600 transition-colors text-sm">
+                        <button onclick="editTask('${task.id}')" class="px-3 py-1 text-sm rounded-lg bg-blue-500 text-white font-semibold hover:bg-blue-600 transition-colors">
                             Edit
                         </button>
-                        <button onclick="deleteTask('${task.id}')" class="px-3 py-1 rounded-lg bg-red-500 text-white hover:bg-red-600 transition-colors text-sm">
+                        <button onclick="deleteTask('${task.id}')" class="px-3 py-1 text-sm rounded-lg bg-red-500 text-white font-semibold hover:bg-red-600 transition-colors">
                             Delete
                         </button>
                     </div>
                 `;
-                taskList.appendChild(taskElement);
+                taskList.appendChild(taskItem);
             });
         }
 
-        // --- Order Functions (NEW) ---
-        
+        // --- Order Functions ---
         function addOrder(event) {
             event.preventDefault();
             const description = document.getElementById('orderDescription').value.trim();
@@ -653,7 +661,7 @@
             const status = document.getElementById('orderStatus').value;
 
             if (!description || !customer || !origin) {
-                showNotification('Please fill in all order fields.', 'error');
+                showNotification('Please fill in all order details.', 'error');
                 return;
             }
 
@@ -687,30 +695,28 @@
                                 <label for="editOrderDescription" class="block text-sm font-medium text-gray-700 mb-1">Order Description</label>
                                 <textarea id="editOrderDescription" rows="3" class="w-full border border-gray-300 rounded-lg shadow-sm p-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all" required>${order.description}</textarea>
                             </div>
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div>
-                                    <label for="editOrderCustomer" class="block text-sm font-medium text-gray-700 mb-1">Company</label>
-                                    <input type="text" id="editOrderCustomer" value="${order.customer}" class="w-full border border-gray-300 rounded-lg shadow-sm p-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all" required>
-                                </div>
-                                <div>
-                                    <label for="editOrderOrigin" class="block text-sm font-medium text-gray-700 mb-1">Order Origin</label>
-                                    <input type="text" id="editOrderOrigin" value="${order.origin}" class="w-full border border-gray-300 rounded-lg shadow-sm p-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all" required>
-                                </div>
-                                <div>
-                                    <label for="editOrderType" class="block text-sm font-medium text-gray-700 mb-1">Order Type</label>
-                                    <select id="editOrderType" class="w-full border border-gray-300 rounded-lg shadow-sm p-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all">
-                                        <option value="Local" ${order.type === 'Local' ? 'selected' : ''}>Local</option>
-                                        <option value="International" ${order.type === 'International' ? 'selected' : ''}>International</option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <label for="editOrderStatus" class="block text-sm font-medium text-gray-700 mb-1">Status</label>
-                                    <select id="editOrderStatus" class="w-full border border-gray-300 rounded-lg shadow-sm p-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all">
-                                        <option value="Pending" ${order.status === 'Pending' ? 'selected' : ''}>Pending</option>
-                                        <option value="In Transit" ${order.status === 'In Transit' ? 'selected' : ''}>In Transit</option>
-                                        <option value="Delivered" ${order.status === 'Delivered' ? 'selected' : ''}>Delivered</option>
-                                    </select>
-                                </div>
+                            <div>
+                                <label for="editOrderCustomer" class="block text-sm font-medium text-gray-700 mb-1">Company</label>
+                                <input type="text" id="editOrderCustomer" value="${order.customer}" class="w-full border border-gray-300 rounded-lg shadow-sm p-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all" required>
+                            </div>
+                            <div>
+                                <label for="editOrderOrigin" class="block text-sm font-medium text-gray-700 mb-1">Order Origin</label>
+                                <input type="text" id="editOrderOrigin" value="${order.origin}" class="w-full border border-gray-300 rounded-lg shadow-sm p-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all" required>
+                            </div>
+                            <div>
+                                <label for="editOrderType" class="block text-sm font-medium text-gray-700 mb-1">Order Type</label>
+                                <select id="editOrderType" class="w-full border border-gray-300 rounded-lg shadow-sm p-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all">
+                                    <option value="Local" ${order.type === 'Local' ? 'selected' : ''}>Local</option>
+                                    <option value="International" ${order.type === 'International' ? 'selected' : ''}>International</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label for="editOrderStatus" class="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                                <select id="editOrderStatus" class="w-full border border-gray-300 rounded-lg shadow-sm p-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all">
+                                    <option value="Pending" ${order.status === 'Pending' ? 'selected' : ''}>Pending</option>
+                                    <option value="In Transit" ${order.status === 'In Transit' ? 'selected' : ''}>In Transit</option>
+                                    <option value="Delivered" ${order.status === 'Delivered' ? 'selected' : ''}>Delivered</option>
+                                </select>
                             </div>
                             <div class="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-4 mt-6">
                                 <button type="button" id="cancelEditOrderBtn" class="px-6 py-2 rounded-lg bg-gray-200 text-gray-700 font-semibold hover:bg-gray-300 transition-colors">Cancel</button>
@@ -726,11 +732,17 @@
 
             document.getElementById('editOrderForm').addEventListener('submit', function(e) {
                 e.preventDefault();
+                const description = document.getElementById('editOrderDescription').value.trim();
+                if (!description) {
+                    showNotification('Please enter an order description.', 'error');
+                    return;
+                }
+
                 const updatedOrder = {
                     ...order,
-                    description: document.getElementById('editOrderDescription').value.trim(),
-                    customer: document.getElementById('editOrderCustomer').value.trim(),
-                    origin: document.getElementById('editOrderOrigin').value.trim(),
+                    description,
+                    customer: document.getElementById('editOrderCustomer').value,
+                    origin: document.getElementById('editOrderOrigin').value,
                     type: document.getElementById('editOrderType').value,
                     status: document.getElementById('editOrderStatus').value
                 };
@@ -807,10 +819,9 @@
                 noOrdersMessage.classList.add('hidden');
             }
 
-            // Apply the filter
             let filteredOrders = orders;
             if (currentOrderFilter === 'pending') {
-                filteredOrders = orders.filter(order => order.status === 'Pending');
+                filteredOrders = orders.filter(order => order.status === 'Pending' || order.status === 'In Transit');
             } else if (currentOrderFilter === 'delivered') {
                 filteredOrders = orders.filter(order => order.status === 'Delivered');
             } else if (currentOrderFilter === 'international') {
@@ -823,176 +834,212 @@
             }
 
             filteredOrders.forEach((order, index) => {
-                const orderElement = document.createElement('div');
-                const statusColorClass = getOrderStatusColor(order.status);
-                orderElement.className = `flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 bg-white rounded-lg shadow-sm border border-gray-200 transition-all duration-200 order-list-item fade-in`;
-                orderElement.innerHTML = `
-                    <div class="flex-grow">
-                        <h4 class="font-semibold text-gray-800 text-base sm:text-lg mb-1">${index + 1}. ${order.description}</h4>
-                        <div class="flex flex-wrap items-center text-sm space-x-2 text-gray-500 mt-1">
-                            <span class="whitespace-nowrap">👤 ${order.customer}</span>
-                            <span class="whitespace-nowrap">📍 ${order.origin}</span>
-                            <span class="px-2 py-0.5 rounded-full border text-xs font-medium bg-gray-100 border-gray-300 text-gray-800">${order.type}</span>
-                            <span class="px-2 py-0.5 rounded-full border text-xs font-medium ${statusColorClass}">${order.status}</span>
+                const orderItem = document.createElement('div');
+                orderItem.className = `order-list-item bg-gray-50 p-4 rounded-lg shadow-sm border border-gray-200 flex flex-col sm:flex-row justify-between items-center fade-in`;
+                orderItem.setAttribute('data-id', order.id);
+
+                const statusColor = getOrderStatusColor(order.status);
+                
+                orderItem.innerHTML = `
+                    <div class="flex-grow mb-2 sm:mb-0">
+                        <div class="flex items-center">
+                            <span class="mr-2 text-sm font-semibold text-gray-700">${index + 1}.</span>
+                            <span class="font-medium text-gray-800">${order.description}</span>
+                        </div>
+                        <div class="mt-1 flex flex-wrap items-center text-sm space-x-2">
+                            <span class="font-medium text-gray-600">Company: ${order.customer}</span>
+                            <span class="font-medium text-gray-600">Origin: ${order.origin}</span>
+                            <span class="px-2 py-1 rounded-full text-xs font-medium border ${statusColor}">${order.status}</span>
+                            <span class="px-2 py-1 rounded-full text-xs font-medium border ${order.type === 'Local' ? 'bg-gray-200 text-gray-700' : 'bg-blue-200 text-blue-700'}">${order.type}</span>
                         </div>
                     </div>
-                    <div class="flex flex-wrap space-x-2 mt-4 sm:mt-0">
-                        <button onclick="editOrder('${order.id}')" class="px-3 py-1 rounded-lg bg-blue-500 text-white hover:bg-blue-600 transition-colors text-sm">
+                    <div class="flex-wrap flex gap-2">
+                        <button onclick="editOrder('${order.id}')" class="px-3 py-1 text-sm rounded-lg bg-blue-500 text-white font-semibold hover:bg-blue-600 transition-colors">
                             Edit
                         </button>
-                        <button onclick="deleteOrder('${order.id}')" class="px-3 py-1 rounded-lg bg-red-500 text-white hover:bg-red-600 transition-colors text-sm">
+                        <button onclick="deleteOrder('${order.id}')" class="px-3 py-1 text-sm rounded-lg bg-red-500 text-white font-semibold hover:bg-red-600 transition-colors">
                             Delete
                         </button>
                     </div>
                 `;
-                orderList.appendChild(orderElement);
+                orderList.appendChild(orderItem);
             });
         }
 
-        // --- PDF Export Functions (NEW) ---
-        function exportToPDF(data, filename, columns) {
+        // --- PDF Generation Functions (using jsPDF and jsPDF-AutoTable) ---
+        function downloadTasksAsPdf() {
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF();
-            doc.text(filename, 14, 20);
-
+            
+            // Add title
+            doc.setFontSize(22);
+            doc.text("Business Task Report", 14, 20);
+            
+            // Add date
+            doc.setFontSize(10);
+            doc.text(`Report Date: ${new Date().toLocaleDateString()}`, 14, 28);
+            
+            // Define table columns
+            const head = [['#', 'Description', 'Due Date', 'Priority', 'Status']];
+            
+            // Define table rows from tasks data
+            const body = tasks.map((task, index) => [
+                index + 1, 
+                task.description, 
+                task.dueDate || 'N/A', 
+                task.priority, 
+                task.completed ? 'Completed' : 'Pending'
+            ]);
+            
+            // Add the table to the document
             doc.autoTable({
-                head: [columns.map(c => c.header)],
-                body: data.map(item => columns.map(c => c.dataKey.includes('.') ? c.dataKey.split('.').reduce((o, i) => o[i], item) : item[c.dataKey])),
-                startY: 30,
-                headStyles: { fillColor: [59, 130, 246] }, // Tailwind blue-500
-                columnStyles: {
-                    0: { cellWidth: 35 },
-                    1: { cellWidth: 40 },
-                    2: { cellWidth: 40 },
-                    3: { cellWidth: 30 },
+                startY: 35,
+                head: head,
+                body: body,
+                theme: 'striped',
+                headStyles: { fillColor: '#3B82F6' },
+                styles: { cellPadding: 2, fontSize: 10 },
+                columnStyles: { 0: { cellWidth: 10 } },
+                didDrawPage: function(data) {
+                    // This callback runs after a page is drawn. We can use it to add content.
+                    const finalY = data.cursor.y; // Get the final Y position of the table
+                    
+                    // Add the bullet points for notes
+                    doc.setFontSize(14);
+                    doc.setTextColor('#374151');
+                    doc.text("Notes for Tasks:", 14, finalY + 15);
+                    
+                    doc.setFontSize(12);
+                    doc.setTextColor('#6B7280');
+                    doc.text("• Follow up on client communication.", 18, finalY + 25);
+                    doc.text("• Prepare quarterly financial report.", 18, finalY + 32);
+                    doc.text("• Schedule team review meeting.", 18, finalY + 39);
                 }
             });
-            doc.save(`${filename}.pdf`);
+            
+            doc.save('business-tasks.pdf');
         }
 
+        function downloadOrdersAsPdf() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            
+            // Add title
+            doc.setFontSize(22);
+            doc.text("Business Order Report", 14, 20);
+            
+            // Add date
+            doc.setFontSize(10);
+            doc.text(`Report Date: ${new Date().toLocaleDateString()}`, 14, 28);
+            
+            // Define table columns
+            const head = [['#', 'Description', 'Company', 'Origin', 'Type', 'Status']];
+            
+            // Define table rows from orders data
+            const body = orders.map((order, index) => [
+                index + 1, 
+                order.description, 
+                order.customer, 
+                order.origin,
+                order.type,
+                order.status
+            ]);
+            
+            // Add the table to the document
+            doc.autoTable({
+                startY: 35,
+                head: head,
+                body: body,
+                theme: 'striped',
+                headStyles: { fillColor: '#1D4ED8' },
+                styles: { cellPadding: 2, fontSize: 10 },
+                columnStyles: { 0: { cellWidth: 10 } }
+            });
+            
+            doc.save('business-orders.pdf');
+        }
+
+
         // --- Event Listeners ---
-        document.addEventListener('DOMContentLoaded', loadData);
+        window.addEventListener('load', loadData);
+
         taskForm.addEventListener('submit', addTask);
         orderForm.addEventListener('submit', addOrder);
 
-        // Task filter button listeners
-        filterAllTasks.addEventListener('click', () => {
-            currentTaskFilter = 'all';
-            renderTasks();
-            const buttons = document.querySelectorAll('#tasks-section .task-filters button');
-            buttons.forEach(btn => btn.classList.remove('bg-blue-500', 'text-white'));
-            buttons.forEach(btn => btn.classList.add('bg-gray-200', 'text-gray-700'));
-            filterAllTasks.classList.remove('bg-gray-200', 'text-gray-700');
-            filterAllTasks.classList.add('bg-blue-500', 'text-white');
-        });
-        filterPendingTasks.addEventListener('click', () => {
-            currentTaskFilter = 'pending';
-            renderTasks();
-            const buttons = document.querySelectorAll('#tasks-section .task-filters button');
-            buttons.forEach(btn => btn.classList.remove('bg-blue-500', 'text-white'));
-            buttons.forEach(btn => btn.classList.add('bg-gray-200', 'text-gray-700'));
-            filterPendingTasks.classList.remove('bg-gray-200', 'text-gray-700');
-            filterPendingTasks.classList.add('bg-blue-500', 'text-white');
-        });
-        filterCompletedTasks.addEventListener('click', () => {
-            currentTaskFilter = 'completed';
-            renderTasks();
-            const buttons = document.querySelectorAll('#tasks-section .task-filters button');
-            buttons.forEach(btn => btn.classList.remove('bg-blue-500', 'text-white'));
-            buttons.forEach(btn => btn.classList.add('bg-gray-200', 'text-gray-700'));
-            filterCompletedTasks.classList.remove('bg-gray-200', 'text-gray-700');
-            filterCompletedTasks.classList.add('bg-blue-500', 'text-white');
-        });
-        filterHighTasks.addEventListener('click', () => {
-            currentTaskFilter = 'high';
-            renderTasks();
-            const buttons = document.querySelectorAll('#tasks-section .task-filters button');
-            buttons.forEach(btn => btn.classList.remove('bg-blue-500', 'text-white'));
-            buttons.forEach(btn => btn.classList.add('bg-gray-200', 'text-gray-700'));
-            filterHighTasks.classList.remove('bg-gray-200', 'text-gray-700');
-            filterHighTasks.classList.add('bg-blue-500', 'text-white');
-        });
-        
-        // Order filter button listeners
-        filterAllOrders.addEventListener('click', () => {
-            currentOrderFilter = 'all';
-            renderOrders();
-            const buttons = document.querySelectorAll('#orders-section .order-filters button');
-            buttons.forEach(btn => btn.classList.remove('bg-blue-500', 'text-white'));
-            buttons.forEach(btn => btn.classList.add('bg-gray-200', 'text-gray-700'));
-            filterAllOrders.classList.remove('bg-gray-200', 'text-gray-700');
-            filterAllOrders.classList.add('bg-blue-500', 'text-white');
-        });
-        filterPendingOrders.addEventListener('click', () => {
-            currentOrderFilter = 'pending';
-            renderOrders();
-            const buttons = document.querySelectorAll('#orders-section .order-filters button');
-            buttons.forEach(btn => btn.classList.remove('bg-blue-500', 'text-white'));
-            buttons.forEach(btn => btn.classList.add('bg-gray-200', 'text-gray-700'));
-            filterPendingOrders.classList.remove('bg-gray-200', 'text-gray-700');
-            filterPendingOrders.classList.add('bg-blue-500', 'text-white');
-        });
-        filterDeliveredOrders.addEventListener('click', () => {
-            currentOrderFilter = 'delivered';
-            renderOrders();
-            const buttons = document.querySelectorAll('#orders-section .order-filters button');
-            buttons.forEach(btn => btn.classList.remove('bg-blue-500', 'text-white'));
-            buttons.forEach(btn => btn.classList.add('bg-gray-200', 'text-gray-700'));
-            filterDeliveredOrders.classList.remove('bg-gray-200', 'text-gray-700');
-            filterDeliveredOrders.classList.add('bg-blue-500', 'text-white');
-        });
-        filterInternationalOrders.addEventListener('click', () => {
-            currentOrderFilter = 'international';
-            renderOrders();
-            const buttons = document.querySelectorAll('#orders-section .order-filters button');
-            buttons.forEach(btn => btn.classList.remove('bg-blue-500', 'text-white'));
-            buttons.forEach(btn => btn.classList.add('bg-gray-200', 'text-gray-700'));
-            filterInternationalOrders.classList.remove('bg-gray-200', 'text-gray-700');
-            filterInternationalOrders.classList.add('bg-blue-500', 'text-white');
-        });
-
-        // Export modal listeners
         exportBtn.addEventListener('click', () => {
             exportModal.classList.remove('hidden');
         });
+
         closeExportModalBtn.addEventListener('click', () => {
             exportModal.classList.add('hidden');
         });
-        exportModal.addEventListener('click', (e) => {
-            if (e.target === exportModal) {
-                exportModal.classList.add('hidden');
-            }
-        });
 
-        // PDF download button listeners
         downloadTasksBtn.addEventListener('click', () => {
-            const taskColumns = [
-                { header: 'Description', dataKey: 'description' },
-                { header: 'Due Date', dataKey: 'dueDate' },
-                { header: 'Priority', dataKey: 'priority' },
-                { header: 'Status', dataKey: 'completed' },
-            ];
-            const formattedTasks = tasks.map(task => ({
-                ...task,
-                completed: task.completed ? 'Completed' : 'Pending'
-            }));
-            exportToPDF(formattedTasks, 'Tasks', taskColumns);
-            showNotification('Tasks exported to PDF!', 'success');
+            downloadTasksAsPdf();
+            exportModal.classList.add('hidden');
+        });
+        
+        downloadOrdersBtn.addEventListener('click', () => {
+            downloadOrdersAsPdf();
             exportModal.classList.add('hidden');
         });
 
-        downloadOrdersBtn.addEventListener('click', () => {
-            const orderColumns = [
-                { header: 'Description', dataKey: 'description' },
-                { header: 'Company', dataKey: 'customer' },
-                { header: 'Origin', dataKey: 'origin' },
-                { header: 'Type', dataKey: 'type' },
-                { header: 'Status', dataKey: 'status' },
-            ];
-            exportToPDF(orders, 'Orders', orderColumns);
-            showNotification('Orders exported to PDF!', 'success');
-            exportModal.classList.add('hidden');
+        filterAllTasks.addEventListener('click', () => {
+            currentTaskFilter = 'all';
+            renderTasks();
+            document.querySelectorAll('.task-filters button').forEach(btn => btn.classList.replace('bg-blue-500', 'bg-gray-200'));
+            filterAllTasks.classList.replace('bg-gray-200', 'bg-blue-500');
         });
+
+        filterPendingTasks.addEventListener('click', () => {
+            currentTaskFilter = 'pending';
+            renderTasks();
+            document.querySelectorAll('.task-filters button').forEach(btn => btn.classList.replace('bg-blue-500', 'bg-gray-200'));
+            filterPendingTasks.classList.replace('bg-gray-200', 'bg-blue-500');
+        });
+
+        filterCompletedTasks.addEventListener('click', () => {
+            currentTaskFilter = 'completed';
+            renderTasks();
+            document.querySelectorAll('.task-filters button').forEach(btn => btn.classList.replace('bg-blue-500', 'bg-gray-200'));
+            filterCompletedTasks.classList.replace('bg-gray-200', 'bg-blue-500');
+        });
+
+        filterHighTasks.addEventListener('click', () => {
+            currentTaskFilter = 'high';
+            renderTasks();
+            document.querySelectorAll('.task-filters button').forEach(btn => btn.classList.replace('bg-blue-500', 'bg-gray-200'));
+            filterHighTasks.classList.replace('bg-gray-200', 'bg-blue-500');
+        });
+        
+        filterAllOrders.addEventListener('click', () => {
+            currentOrderFilter = 'all';
+            renderOrders();
+            document.querySelectorAll('.order-filters button').forEach(btn => btn.classList.replace('bg-blue-500', 'bg-gray-200'));
+            filterAllOrders.classList.replace('bg-gray-200', 'bg-blue-500');
+        });
+        
+        filterPendingOrders.addEventListener('click', () => {
+            currentOrderFilter = 'pending';
+            renderOrders();
+            document.querySelectorAll('.order-filters button').forEach(btn => btn.classList.replace('bg-blue-500', 'bg-gray-200'));
+            filterPendingOrders.classList.replace('bg-gray-200', 'bg-blue-500');
+        });
+        
+        filterDeliveredOrders.addEventListener('click', () => {
+            currentOrderFilter = 'delivered';
+            renderOrders();
+            document.querySelectorAll('.order-filters button').forEach(btn => btn.classList.replace('bg-blue-500', 'bg-gray-200'));
+            filterDeliveredOrders.classList.replace('bg-gray-200', 'bg-blue-500');
+        });
+        
+        filterInternationalOrders.addEventListener('click', () => {
+            currentOrderFilter = 'international';
+            renderOrders();
+            document.querySelectorAll('.order-filters button').forEach(btn => btn.classList.replace('bg-blue-500', 'bg-gray-200'));
+            filterInternationalOrders.classList.replace('bg-gray-200', 'bg-blue-500');
+        });
+
     </script>
 </body>
 </html>
