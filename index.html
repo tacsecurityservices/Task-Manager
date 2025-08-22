@@ -9,7 +9,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <!-- jsPDF-AutoTable plugin for table generation in PDF -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.20/jspdf.plugin.autotable.min.js"></script>
-     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text x='50%' y='50%' font-family='Arial, sans-serif' font-size='60' font-weight='bold' text-anchor='end' dominant-baseline='middle' fill='%233B82F6'>T</text><circle cx='80' cy='50' r='10' fill='%233B82F6'/></svg>">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text x='50%' y='50%' font-family='Arial, sans-serif' font-size='60' font-weight='bold' text-anchor='end' dominant-baseline='middle' fill='%233B82F6'>T</text><circle cx='80' cy='50' r='10' fill='%233B82F6'/></svg>">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -269,6 +269,14 @@
                     </form>
                 </div>
                 
+                <!-- Order Filters -->
+                <div class="flex flex-wrap gap-2 mb-6 order-filters">
+                    <button id="filterAllOrders" class="px-4 py-2 rounded-lg bg-blue-500 text-white font-semibold hover:bg-blue-600 transition-colors text-sm">All</button>
+                    <button id="filterPendingOrders" class="px-4 py-2 rounded-lg bg-gray-200 text-gray-700 font-semibold hover:bg-gray-300 transition-colors text-sm">Pending</button>
+                    <button id="filterDeliveredOrders" class="px-4 py-2 rounded-lg bg-gray-200 text-gray-700 font-semibold hover:bg-gray-300 transition-colors text-sm">Delivered</button>
+                    <button id="filterInternationalOrders" class="px-4 py-2 rounded-lg bg-gray-200 text-gray-700 font-semibold hover:bg-gray-300 transition-colors text-sm">International</button>
+                </div>
+
                 <div>
                     <h3 class="text-xl font-semibold text-gray-700 mb-4">Current Orders</h3>
                     <div id="orderList" class="space-y-4">
@@ -305,9 +313,12 @@
 
     <script>
         // --- Application Data ---
+        // Tasks and Orders data are now initialized as empty arrays.
+        // Data will be loaded from localStorage on page load.
         let tasks = [];
         let orders = [];
         let currentTaskFilter = 'all';
+        let currentOrderFilter = 'all';
 
         // --- DOM Elements ---
         const loadingOverlay = document.getElementById('loadingOverlay');
@@ -331,6 +342,12 @@
         const filterPendingTasks = document.getElementById('filterPendingTasks');
         const filterCompletedTasks = document.getElementById('filterCompletedTasks');
         const filterHighTasks = document.getElementById('filterHighTasks');
+
+        // Order Filter Buttons
+        const filterAllOrders = document.getElementById('filterAllOrders');
+        const filterPendingOrders = document.getElementById('filterPendingOrders');
+        const filterDeliveredOrders = document.getElementById('filterDeliveredOrders');
+        const filterInternationalOrders = document.getElementById('filterInternationalOrders');
 
         // --- Utility Functions ---
         function showNotification(message, type = 'info') {
@@ -369,54 +386,53 @@
             }
         }
 
-        // --- Data Storage Functions (Using in-memory storage) ---
+        /**
+         * Saves tasks and orders data to localStorage.
+         */
         function saveData() {
-            // In a real-world scenario, this would save to a server or database
-            // For this demo, we'll just update the auto-save status
-            autoSaveStatus.textContent = `✓ Last saved: ${new Date().toLocaleTimeString()}`;
+            // Check if localStorage is available
+            try {
+                localStorage.setItem('tasks', JSON.stringify(tasks));
+                localStorage.setItem('orders', JSON.stringify(orders));
+                autoSaveStatus.textContent = `✓ Last saved: ${new Date().toLocaleTimeString()}`;
+            } catch (error) {
+                showNotification('Could not save data. Local Storage may be full or unavailable.', 'error');
+                console.error('Error saving to localStorage:', error);
+            }
         }
 
+        /**
+         * Loads tasks and orders data from localStorage.
+         */
         function loadData() {
             showLoading('Loading business data...');
             setTimeout(() => {
-                // Initialize with some sample data if none exists
-                if (tasks.length === 0 && orders.length === 0) {
-                    tasks = [
-                        {
-                            id: '1',
-                            description: 'Review quarterly financial reports',
-                            dueDate: '2025-08-30',
-                            priority: 'High',
-                            completed: false,
-                            createdAt: new Date().toISOString()
-                        },
-                        {
-                            id: '2',
-                            description: 'Update company website content',
-                            dueDate: '2025-09-05',
-                            priority: 'Medium',
-                            completed: false,
-                            createdAt: new Date().toISOString()
-                        }
-                    ];
+                try {
+                    const savedTasks = localStorage.getItem('tasks');
+                    const savedOrders = localStorage.getItem('orders');
 
-                    orders = [
-                        {
-                            id: '1',
-                            description: 'Office furniture shipment',
-                            customer: 'ABC Office Solutions',
-                            origin: 'Shanghai, China',
-                            type: 'International',
-                            status: 'In Transit',
-                            createdAt: new Date().toISOString()
-                        }
-                    ];
+                    if (savedTasks) {
+                        tasks = JSON.parse(savedTasks);
+                    }
+
+                    if (savedOrders) {
+                        orders = JSON.parse(savedOrders);
+                    }
+
+                    renderTasks();
+                    renderOrders();
+                    showNotification('Business data loaded!', 'success');
+                    hideLoading();
+                } catch (error) {
+                    showNotification('Failed to load data. Data may be corrupted.', 'error');
+                    console.error('Error loading from localStorage:', error);
+                    // Fallback to empty data on error
+                    tasks = [];
+                    orders = [];
+                    renderTasks();
+                    renderOrders();
+                    hideLoading();
                 }
-
-                renderTasks();
-                renderOrders();
-                showNotification('Business data loaded!', 'success');
-                hideLoading();
             }, 800);
         }
 
@@ -601,29 +617,33 @@
             filteredTasks.forEach((task, index) => {
                 const taskElement = document.createElement('div');
                 const priorityColorClass = getPriorityColor(task.priority);
-                taskElement.className = `flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 rounded-lg shadow-sm border ${priorityColorClass} fade-in task-list-item`;
+                taskElement.className = `flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 bg-white rounded-lg shadow-sm border border-gray-200 transition-all duration-200 task-list-item fade-in ${task.completed ? 'opacity-60' : ''}`;
                 taskElement.innerHTML = `
-                    <div class="mb-2 sm:mb-0 flex-grow flex items-start">
-                        <span class="font-bold text-lg text-gray-800 mr-2">${index + 1}.</span>
-                        <div>
-                            <p class="font-semibold text-base sm:text-lg ${task.completed ? 'line-through text-gray-500' : 'text-gray-800'}">${task.description}</p>
-                            <p class="text-xs sm:text-sm text-gray-600">${task.dueDate ? `Due: ${task.dueDate}` : 'No due date'}</p>
-                            <p class="text-xs font-medium ${task.completed ? 'text-green-600' : 'text-blue-600'}">${task.completed ? 'Completed' : 'Pending'} | Priority: ${task.priority}</p>
+                    <div class="flex-grow">
+                        <h4 class="font-semibold text-gray-800 text-base sm:text-lg mb-1">${index + 1}. ${task.description}</h4>
+                        <div class="flex flex-wrap items-center text-sm space-x-2 text-gray-500 mt-1">
+                            ${task.dueDate ? `<span class="whitespace-nowrap">📅 ${task.dueDate}</span>` : ''}
+                            <span class="px-2 py-0.5 rounded-full border text-xs font-medium ${priorityColorClass}">${task.priority} Priority</span>
                         </div>
                     </div>
-                    <div class="flex flex-wrap gap-2 sm:ml-4">
-                        <button onclick="toggleTaskStatus('${task.id}')" class="px-3 py-1 rounded-md ${task.completed ? 'bg-yellow-500 hover:bg-yellow-600' : 'bg-green-500 hover:bg-green-600'} text-white font-semibold transition-colors text-sm">
-                            ${task.completed ? 'Unmark' : 'Complete'}
+                    <div class="flex flex-wrap space-x-2 mt-4 sm:mt-0">
+                        <button onclick="toggleTaskStatus('${task.id}')" class="px-3 py-1 rounded-lg ${task.completed ? 'bg-yellow-500 hover:bg-yellow-600 text-white' : 'bg-green-500 hover:bg-green-600 text-white'} transition-colors text-sm">
+                            ${task.completed ? 'Undo' : 'Complete'}
                         </button>
-                        <button onclick="editTask('${task.id}')" class="px-3 py-1 rounded-md bg-blue-600 text-white font-semibold hover:bg-blue-700 transition-colors text-sm">Edit</button>
-                        <button onclick="deleteTask('${task.id}')" class="px-3 py-1 rounded-md bg-red-600 text-white font-semibold hover:bg-red-700 transition-colors text-sm">Delete</button>
+                        <button onclick="editTask('${task.id}')" class="px-3 py-1 rounded-lg bg-blue-500 text-white hover:bg-blue-600 transition-colors text-sm">
+                            Edit
+                        </button>
+                        <button onclick="deleteTask('${task.id}')" class="px-3 py-1 rounded-lg bg-red-500 text-white hover:bg-red-600 transition-colors text-sm">
+                            Delete
+                        </button>
                     </div>
                 `;
                 taskList.appendChild(taskElement);
             });
         }
 
-        // --- Order Functions ---
+        // --- Order Functions (NEW) ---
+        
         function addOrder(event) {
             event.preventDefault();
             const description = document.getElementById('orderDescription').value.trim();
@@ -669,7 +689,7 @@
                             </div>
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
-                                    <label for="editOrderCustomer" class="block text-sm font-medium text-gray-700 mb-1">Customer</label>
+                                    <label for="editOrderCustomer" class="block text-sm font-medium text-gray-700 mb-1">Company</label>
                                     <input type="text" id="editOrderCustomer" value="${order.customer}" class="w-full border border-gray-300 rounded-lg shadow-sm p-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all" required>
                                 </div>
                                 <div>
@@ -706,19 +726,11 @@
 
             document.getElementById('editOrderForm').addEventListener('submit', function(e) {
                 e.preventDefault();
-                const description = document.getElementById('editOrderDescription').value.trim();
-                const customer = document.getElementById('editOrderCustomer').value.trim();
-                const origin = document.getElementById('editOrderOrigin').value.trim();
-                if (!description || !customer || !origin) {
-                    showNotification('Please fill in all order fields.', 'error');
-                    return;
-                }
-
                 const updatedOrder = {
                     ...order,
-                    description,
-                    customer,
-                    origin,
+                    description: document.getElementById('editOrderDescription').value.trim(),
+                    customer: document.getElementById('editOrderCustomer').value.trim(),
+                    origin: document.getElementById('editOrderOrigin').value.trim(),
                     type: document.getElementById('editOrderType').value,
                     status: document.getElementById('editOrderStatus').value
                 };
@@ -743,7 +755,7 @@
                 }
             });
         }
-        
+
         function deleteOrder(orderId) {
             const order = orders.find(o => o.id === orderId);
             if (!order) return;
@@ -795,191 +807,192 @@
                 noOrdersMessage.classList.add('hidden');
             }
 
-            orders.forEach((order, index) => {
+            // Apply the filter
+            let filteredOrders = orders;
+            if (currentOrderFilter === 'pending') {
+                filteredOrders = orders.filter(order => order.status === 'Pending');
+            } else if (currentOrderFilter === 'delivered') {
+                filteredOrders = orders.filter(order => order.status === 'Delivered');
+            } else if (currentOrderFilter === 'international') {
+                filteredOrders = orders.filter(order => order.type === 'International');
+            }
+
+            if (filteredOrders.length === 0 && orders.length > 0) {
+                orderList.innerHTML = '<p class="text-center text-gray-500 py-8">No orders match the current filter.</p>';
+                return;
+            }
+
+            filteredOrders.forEach((order, index) => {
                 const orderElement = document.createElement('div');
                 const statusColorClass = getOrderStatusColor(order.status);
-                orderElement.className = `flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 rounded-lg shadow-sm border ${statusColorClass} fade-in order-list-item`;
+                orderElement.className = `flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 bg-white rounded-lg shadow-sm border border-gray-200 transition-all duration-200 order-list-item fade-in`;
                 orderElement.innerHTML = `
-                    <div class="mb-2 sm:mb-0 flex-grow flex items-start">
-                        <span class="font-bold text-lg text-gray-800 mr-2">${index + 1}.</span>
-                        <div>
-                            <p class="font-semibold text-base sm:text-lg text-gray-800">${order.description}</p>
-                            <p class="text-xs sm:text-sm text-gray-600">Customer: ${order.customer} | Origin: ${order.origin}</p>
-                            <p class="text-xs font-medium text-blue-600">Type: ${order.type} | Status: ${order.status}</p>
+                    <div class="flex-grow">
+                        <h4 class="font-semibold text-gray-800 text-base sm:text-lg mb-1">${index + 1}. ${order.description}</h4>
+                        <div class="flex flex-wrap items-center text-sm space-x-2 text-gray-500 mt-1">
+                            <span class="whitespace-nowrap">👤 ${order.customer}</span>
+                            <span class="whitespace-nowrap">📍 ${order.origin}</span>
+                            <span class="px-2 py-0.5 rounded-full border text-xs font-medium bg-gray-100 border-gray-300 text-gray-800">${order.type}</span>
+                            <span class="px-2 py-0.5 rounded-full border text-xs font-medium ${statusColorClass}">${order.status}</span>
                         </div>
                     </div>
-                    <div class="flex flex-wrap gap-2 sm:ml-4">
-                        <button onclick="editOrder('${order.id}')" class="px-3 py-1 rounded-md bg-blue-600 text-white font-semibold hover:bg-blue-700 transition-colors text-sm">Edit</button>
-                        <button onclick="deleteOrder('${order.id}')" class="px-3 py-1 rounded-md bg-red-600 text-white font-semibold hover:bg-red-700 transition-colors text-sm">Delete</button>
+                    <div class="flex flex-wrap space-x-2 mt-4 sm:mt-0">
+                        <button onclick="editOrder('${order.id}')" class="px-3 py-1 rounded-lg bg-blue-500 text-white hover:bg-blue-600 transition-colors text-sm">
+                            Edit
+                        </button>
+                        <button onclick="deleteOrder('${order.id}')" class="px-3 py-1 rounded-lg bg-red-500 text-white hover:bg-red-600 transition-colors text-sm">
+                            Delete
+                        </button>
                     </div>
                 `;
                 orderList.appendChild(orderElement);
             });
         }
 
-        // --- PDF Export Functions ---
-        async function exportTasksToPDF() {
-            showLoading('Generating tasks PDF...');
-            try {
-                const { jsPDF } = window.jspdf;
-                const doc = new jsPDF();
+        // --- PDF Export Functions (NEW) ---
+        function exportToPDF(data, filename, columns) {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            doc.text(filename, 14, 20);
 
-                doc.setFontSize(22);
-                doc.text("My Tasks", 14, 20);
-                doc.setFontSize(12);
-                doc.setTextColor(100);
-                doc.text("Generated on: " + new Date().toLocaleDateString(), 14, 28);
-
-                const tableData = tasks.map((task, index) => [
-                    index + 1,
-                    task.description,
-                    task.dueDate || 'No due date',
-                    task.priority,
-                    task.completed ? "Completed" : "Pending"
-                ]);
-
-                doc.autoTable({
-                    startY: 35,
-                    head: [['#', 'Description', 'Due Date', 'Priority', 'Status']],
-                    body: tableData,
-                    theme: 'striped',
-                    headStyles: { fillColor: [59, 130, 246] },
-                    styles: { fontSize: 10, cellPadding: 3 }
-                });
-
-                doc.save('my-tasks.pdf');
-                showNotification('Tasks PDF downloaded successfully!', 'success');
-            } catch (error) {
-                console.error('Error exporting tasks to PDF:', error);
-                showNotification('Error exporting tasks to PDF.', 'error');
-            } finally {
-                hideLoading();
-            }
-        }
-
-        async function exportOrdersToPDF() {
-            showLoading('Generating orders PDF...');
-            try {
-                const { jsPDF } = window.jspdf;
-                const doc = new jsPDF();
-
-                doc.setFontSize(22);
-                doc.text("My Orders", 14, 20);
-                doc.setFontSize(12);
-                doc.setTextColor(100);
-                doc.text("Generated on: " + new Date().toLocaleDateString(), 14, 28);
-
-                const tableData = orders.map((order, index) => [
-                    index + 1,
-                    order.description,
-                    order.customer,
-                    order.origin,
-                    order.type,
-                    order.status
-                ]);
-
-                doc.autoTable({
-                    startY: 35,
-                    head: [['#', 'Description', 'Customer', 'Origin', 'Type', 'Status']],
-                    body: tableData,
-                    theme: 'striped',
-                    headStyles: { fillColor: [59, 130, 246] },
-                    styles: { fontSize: 9, cellPadding: 2 }
-                });
-
-                doc.save('my-orders.pdf');
-                showNotification('Orders PDF downloaded successfully!', 'success');
-            } catch (error) {
-                console.error('Error exporting orders to PDF:', error);
-                showNotification('Error exporting orders to PDF.', 'error');
-            } finally {
-                hideLoading();
-            }
+            doc.autoTable({
+                head: [columns.map(c => c.header)],
+                body: data.map(item => columns.map(c => c.dataKey.includes('.') ? c.dataKey.split('.').reduce((o, i) => o[i], item) : item[c.dataKey])),
+                startY: 30,
+                headStyles: { fillColor: [59, 130, 246] }, // Tailwind blue-500
+                columnStyles: {
+                    0: { cellWidth: 35 },
+                    1: { cellWidth: 40 },
+                    2: { cellWidth: 40 },
+                    3: { cellWidth: 30 },
+                }
+            });
+            doc.save(`${filename}.pdf`);
         }
 
         // --- Event Listeners ---
+        document.addEventListener('DOMContentLoaded', loadData);
         taskForm.addEventListener('submit', addTask);
         orderForm.addEventListener('submit', addOrder);
 
-        // Export modal handlers
+        // Task filter button listeners
+        filterAllTasks.addEventListener('click', () => {
+            currentTaskFilter = 'all';
+            renderTasks();
+            const buttons = document.querySelectorAll('#tasks-section .task-filters button');
+            buttons.forEach(btn => btn.classList.remove('bg-blue-500', 'text-white'));
+            buttons.forEach(btn => btn.classList.add('bg-gray-200', 'text-gray-700'));
+            filterAllTasks.classList.remove('bg-gray-200', 'text-gray-700');
+            filterAllTasks.classList.add('bg-blue-500', 'text-white');
+        });
+        filterPendingTasks.addEventListener('click', () => {
+            currentTaskFilter = 'pending';
+            renderTasks();
+            const buttons = document.querySelectorAll('#tasks-section .task-filters button');
+            buttons.forEach(btn => btn.classList.remove('bg-blue-500', 'text-white'));
+            buttons.forEach(btn => btn.classList.add('bg-gray-200', 'text-gray-700'));
+            filterPendingTasks.classList.remove('bg-gray-200', 'text-gray-700');
+            filterPendingTasks.classList.add('bg-blue-500', 'text-white');
+        });
+        filterCompletedTasks.addEventListener('click', () => {
+            currentTaskFilter = 'completed';
+            renderTasks();
+            const buttons = document.querySelectorAll('#tasks-section .task-filters button');
+            buttons.forEach(btn => btn.classList.remove('bg-blue-500', 'text-white'));
+            buttons.forEach(btn => btn.classList.add('bg-gray-200', 'text-gray-700'));
+            filterCompletedTasks.classList.remove('bg-gray-200', 'text-gray-700');
+            filterCompletedTasks.classList.add('bg-blue-500', 'text-white');
+        });
+        filterHighTasks.addEventListener('click', () => {
+            currentTaskFilter = 'high';
+            renderTasks();
+            const buttons = document.querySelectorAll('#tasks-section .task-filters button');
+            buttons.forEach(btn => btn.classList.remove('bg-blue-500', 'text-white'));
+            buttons.forEach(btn => btn.classList.add('bg-gray-200', 'text-gray-700'));
+            filterHighTasks.classList.remove('bg-gray-200', 'text-gray-700');
+            filterHighTasks.classList.add('bg-blue-500', 'text-white');
+        });
+        
+        // Order filter button listeners
+        filterAllOrders.addEventListener('click', () => {
+            currentOrderFilter = 'all';
+            renderOrders();
+            const buttons = document.querySelectorAll('#orders-section .order-filters button');
+            buttons.forEach(btn => btn.classList.remove('bg-blue-500', 'text-white'));
+            buttons.forEach(btn => btn.classList.add('bg-gray-200', 'text-gray-700'));
+            filterAllOrders.classList.remove('bg-gray-200', 'text-gray-700');
+            filterAllOrders.classList.add('bg-blue-500', 'text-white');
+        });
+        filterPendingOrders.addEventListener('click', () => {
+            currentOrderFilter = 'pending';
+            renderOrders();
+            const buttons = document.querySelectorAll('#orders-section .order-filters button');
+            buttons.forEach(btn => btn.classList.remove('bg-blue-500', 'text-white'));
+            buttons.forEach(btn => btn.classList.add('bg-gray-200', 'text-gray-700'));
+            filterPendingOrders.classList.remove('bg-gray-200', 'text-gray-700');
+            filterPendingOrders.classList.add('bg-blue-500', 'text-white');
+        });
+        filterDeliveredOrders.addEventListener('click', () => {
+            currentOrderFilter = 'delivered';
+            renderOrders();
+            const buttons = document.querySelectorAll('#orders-section .order-filters button');
+            buttons.forEach(btn => btn.classList.remove('bg-blue-500', 'text-white'));
+            buttons.forEach(btn => btn.classList.add('bg-gray-200', 'text-gray-700'));
+            filterDeliveredOrders.classList.remove('bg-gray-200', 'text-gray-700');
+            filterDeliveredOrders.classList.add('bg-blue-500', 'text-white');
+        });
+        filterInternationalOrders.addEventListener('click', () => {
+            currentOrderFilter = 'international';
+            renderOrders();
+            const buttons = document.querySelectorAll('#orders-section .order-filters button');
+            buttons.forEach(btn => btn.classList.remove('bg-blue-500', 'text-white'));
+            buttons.forEach(btn => btn.classList.add('bg-gray-200', 'text-gray-700'));
+            filterInternationalOrders.classList.remove('bg-gray-200', 'text-gray-700');
+            filterInternationalOrders.classList.add('bg-blue-500', 'text-white');
+        });
+
+        // Export modal listeners
         exportBtn.addEventListener('click', () => {
             exportModal.classList.remove('hidden');
         });
-
         closeExportModalBtn.addEventListener('click', () => {
             exportModal.classList.add('hidden');
         });
-
-        downloadTasksBtn.addEventListener('click', () => {
-            exportTasksToPDF();
-            exportModal.classList.add('hidden');
-        });
-
-        downloadOrdersBtn.addEventListener('click', () => {
-            exportOrdersToPDF();
-            exportModal.classList.add('hidden');
-        });
-
         exportModal.addEventListener('click', (e) => {
             if (e.target === exportModal) {
                 exportModal.classList.add('hidden');
             }
         });
 
-        // Filter button handlers
-        filterAllTasks.addEventListener('click', () => {
-            currentTaskFilter = 'all';
-            document.querySelectorAll('.task-filters button').forEach(btn => {
-                btn.classList.remove('bg-blue-500', 'text-white');
-                btn.classList.add('bg-gray-200', 'text-gray-700');
-            });
-            filterAllTasks.classList.remove('bg-gray-200', 'text-gray-700');
-            filterAllTasks.classList.add('bg-blue-500', 'text-white');
-            renderTasks();
+        // PDF download button listeners
+        downloadTasksBtn.addEventListener('click', () => {
+            const taskColumns = [
+                { header: 'Description', dataKey: 'description' },
+                { header: 'Due Date', dataKey: 'dueDate' },
+                { header: 'Priority', dataKey: 'priority' },
+                { header: 'Status', dataKey: 'completed' },
+            ];
+            const formattedTasks = tasks.map(task => ({
+                ...task,
+                completed: task.completed ? 'Completed' : 'Pending'
+            }));
+            exportToPDF(formattedTasks, 'Tasks', taskColumns);
+            showNotification('Tasks exported to PDF!', 'success');
+            exportModal.classList.add('hidden');
         });
 
-        filterPendingTasks.addEventListener('click', () => {
-            currentTaskFilter = 'pending';
-            document.querySelectorAll('.task-filters button').forEach(btn => {
-                btn.classList.remove('bg-blue-500', 'text-white');
-                btn.classList.add('bg-gray-200', 'text-gray-700');
-            });
-            filterPendingTasks.classList.remove('bg-gray-200', 'text-gray-700');
-            filterPendingTasks.classList.add('bg-blue-500', 'text-white');
-            renderTasks();
+        downloadOrdersBtn.addEventListener('click', () => {
+            const orderColumns = [
+                { header: 'Description', dataKey: 'description' },
+                { header: 'Company', dataKey: 'customer' },
+                { header: 'Origin', dataKey: 'origin' },
+                { header: 'Type', dataKey: 'type' },
+                { header: 'Status', dataKey: 'status' },
+            ];
+            exportToPDF(orders, 'Orders', orderColumns);
+            showNotification('Orders exported to PDF!', 'success');
+            exportModal.classList.add('hidden');
         });
-
-        filterCompletedTasks.addEventListener('click', () => {
-            currentTaskFilter = 'completed';
-            document.querySelectorAll('.task-filters button').forEach(btn => {
-                btn.classList.remove('bg-blue-500', 'text-white');
-                btn.classList.add('bg-gray-200', 'text-gray-700');
-            });
-            filterCompletedTasks.classList.remove('bg-gray-200', 'text-gray-700');
-            filterCompletedTasks.classList.add('bg-blue-500', 'text-white');
-            renderTasks();
-        });
-
-        filterHighTasks.addEventListener('click', () => {
-            currentTaskFilter = 'high';
-            document.querySelectorAll('.task-filters button').forEach(btn => {
-                btn.classList.remove('bg-blue-500', 'text-white');
-                btn.classList.add('bg-gray-200', 'text-gray-700');
-            });
-            filterHighTasks.classList.remove('bg-gray-200', 'text-gray-700');
-            filterHighTasks.classList.add('bg-blue-500', 'text-white');
-            renderTasks();
-        });
-
-        // Make functions globally accessible for onclick handlers
-        window.toggleTaskStatus = toggleTaskStatus;
-        window.editTask = editTask;
-        window.deleteTask = deleteTask;
-        window.editOrder = editOrder;
-        window.deleteOrder = deleteOrder;
-
-        // Initial data load on page load
-        window.addEventListener('DOMContentLoaded', loadData);
     </script>
 </body>
 </html>
