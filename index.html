@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Task Manager</title>
+    <title>Business Manager</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- jsPDF library for PDF generation -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <!-- jsPDF-AutoTable plugin for table generation in PDF -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.20/jspdf.plugin.autotable.min.js"></script>
-     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text x='50%' y='50%' font-family='Arial, sans-serif' font-size='60' font-weight='bold' text-anchor='end' dominant-baseline='middle' fill='%233B82F6'>T</text><circle cx='80' cy='50' r='10' fill='%233B82F6'/></svg>">
+     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text x='50%' y='50%' font-family='Arial, sans-serif' font-size='60' font-weight='bold' text-anchor='end' dominant-baseline='middle' fill='%233B82F6'>T</text><circle cx='80' cy='50' r='10' fill='%233B82F6'/></svg>">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -369,34 +369,55 @@
             }
         }
 
-        // --- Local Storage Data Operations ---
-        function saveDataToLocalStorage() {
-            localStorage.setItem('tasks', JSON.stringify(tasks));
-            localStorage.setItem('orders', JSON.stringify(orders));
-            autoSaveStatus.textContent = `✓ Last saved: ${new Date().toLocaleTimeString()} (Local Storage)`;
+        // --- Data Storage Functions (Using in-memory storage) ---
+        function saveData() {
+            // In a real-world scenario, this would save to a server or database
+            // For this demo, we'll just update the auto-save status
+            autoSaveStatus.textContent = `✓ Last saved: ${new Date().toLocaleTimeString()}`;
         }
 
-        function loadDataFromLocalStorage() {
+        function loadData() {
             showLoading('Loading business data...');
             setTimeout(() => {
-                try {
-                    const storedTasks = localStorage.getItem('tasks');
-                    tasks = storedTasks ? JSON.parse(storedTasks) : [];
-                    
-                    const storedOrders = localStorage.getItem('orders');
-                    orders = storedOrders ? JSON.parse(storedOrders) : [];
+                // Initialize with some sample data if none exists
+                if (tasks.length === 0 && orders.length === 0) {
+                    tasks = [
+                        {
+                            id: '1',
+                            description: 'Review quarterly financial reports',
+                            dueDate: '2025-08-30',
+                            priority: 'High',
+                            completed: false,
+                            createdAt: new Date().toISOString()
+                        },
+                        {
+                            id: '2',
+                            description: 'Update company website content',
+                            dueDate: '2025-09-05',
+                            priority: 'Medium',
+                            completed: false,
+                            createdAt: new Date().toISOString()
+                        }
+                    ];
 
-                    renderTasks();
-                    renderOrders();
-                    
-                    showNotification('Business data loaded!', 'success');
-                } catch (e) {
-                    console.error("Error loading data from local storage: ", e);
-                    showNotification('Error loading data from local storage.', 'error');
-                } finally {
-                    hideLoading();
+                    orders = [
+                        {
+                            id: '1',
+                            description: 'Office furniture shipment',
+                            customer: 'ABC Office Solutions',
+                            origin: 'Shanghai, China',
+                            type: 'International',
+                            status: 'In Transit',
+                            createdAt: new Date().toISOString()
+                        }
+                    ];
                 }
-            }, 500);
+
+                renderTasks();
+                renderOrders();
+                showNotification('Business data loaded!', 'success');
+                hideLoading();
+            }, 800);
         }
 
         // --- Task Functions ---
@@ -421,7 +442,7 @@
             };
 
             tasks.push(newTask);
-            saveDataToLocalStorage();
+            saveData();
             renderTasks();
             taskForm.reset();
             showNotification('Task added successfully!', 'success');
@@ -431,7 +452,7 @@
             const taskIndex = tasks.findIndex(t => t.id === taskId);
             if (taskIndex > -1) {
                 tasks[taskIndex].completed = !tasks[taskIndex].completed;
-                saveDataToLocalStorage();
+                saveData();
                 renderTasks();
                 showNotification('Task status updated!', 'success');
             }
@@ -492,7 +513,7 @@
                 const taskIndex = tasks.findIndex(t => t.id === taskId);
                 if (taskIndex > -1) {
                     tasks[taskIndex] = updatedTask;
-                    saveDataToLocalStorage();
+                    saveData();
                     renderTasks();
                     showNotification('Task updated successfully!', 'success');
                     modal.remove();
@@ -535,7 +556,7 @@
 
             document.getElementById('confirmDeleteTaskBtn').addEventListener('click', function() {
                 tasks = tasks.filter(t => t.id !== taskId);
-                saveDataToLocalStorage();
+                saveData();
                 renderTasks();
                 showNotification('Task deleted successfully!', 'success');
                 modal.remove();
@@ -552,10 +573,6 @@
             });
         }
 
-        /**
-         * Renders the tasks list based on the current filter.
-         * The index is used to provide chronological numbering.
-         */
         function renderTasks() {
             taskList.innerHTML = '';
 
@@ -587,7 +604,6 @@
                 taskElement.className = `flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 rounded-lg shadow-sm border ${priorityColorClass} fade-in task-list-item`;
                 taskElement.innerHTML = `
                     <div class="mb-2 sm:mb-0 flex-grow flex items-start">
-                        <!-- Add chronological numbering -->
                         <span class="font-bold text-lg text-gray-800 mr-2">${index + 1}.</span>
                         <div>
                             <p class="font-semibold text-base sm:text-lg ${task.completed ? 'line-through text-gray-500' : 'text-gray-800'}">${task.description}</p>
@@ -612,7 +628,7 @@
             event.preventDefault();
             const description = document.getElementById('orderDescription').value.trim();
             const customer = document.getElementById('orderCustomer').value.trim();
-            const origin = document.getElementById('orderOrigin').value.trim(); // Get the new field
+            const origin = document.getElementById('orderOrigin').value.trim();
             const type = document.getElementById('orderType').value;
             const status = document.getElementById('orderStatus').value;
 
@@ -625,14 +641,14 @@
                 id: Date.now().toString(),
                 description,
                 customer,
-                origin, // Add origin to the object
+                origin,
                 type,
                 status,
                 createdAt: new Date().toISOString()
             };
 
             orders.push(newOrder);
-            saveDataToLocalStorage();
+            saveData();
             renderOrders();
             orderForm.reset();
             showNotification('Order added successfully!', 'success');
@@ -710,7 +726,7 @@
                 const orderIndex = orders.findIndex(o => o.id === orderId);
                 if (orderIndex > -1) {
                     orders[orderIndex] = updatedOrder;
-                    saveDataToLocalStorage();
+                    saveData();
                     renderOrders();
                     showNotification('Order updated successfully!', 'success');
                     modal.remove();
@@ -753,7 +769,7 @@
 
             document.getElementById('confirmDeleteOrderBtn').addEventListener('click', function() {
                 orders = orders.filter(o => o.id !== orderId);
-                saveDataToLocalStorage();
+                saveData();
                 renderOrders();
                 showNotification('Order deleted successfully!', 'success');
                 modal.remove();
@@ -779,13 +795,14 @@
                 noOrdersMessage.classList.add('hidden');
             }
 
-            orders.forEach(order => {
+            orders.forEach((order, index) => {
                 const orderElement = document.createElement('div');
                 const statusColorClass = getOrderStatusColor(order.status);
                 orderElement.className = `flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 rounded-lg shadow-sm border ${statusColorClass} fade-in order-list-item`;
                 orderElement.innerHTML = `
-                    <div class="mb-2 sm:mb-0 flex-grow flex flex-col sm:flex-row sm:items-center sm:space-x-4">
-                        <div class="flex-grow">
+                    <div class="mb-2 sm:mb-0 flex-grow flex items-start">
+                        <span class="font-bold text-lg text-gray-800 mr-2">${index + 1}.</span>
+                        <div>
                             <p class="font-semibold text-base sm:text-lg text-gray-800">${order.description}</p>
                             <p class="text-xs sm:text-sm text-gray-600">Customer: ${order.customer} | Origin: ${order.origin}</p>
                             <p class="text-xs font-medium text-blue-600">Type: ${order.type} | Status: ${order.status}</p>
@@ -801,11 +818,10 @@
         }
 
         // --- PDF Export Functions ---
-        const { jsPDF } = window.jspdf;
-
         async function exportTasksToPDF() {
             showLoading('Generating tasks PDF...');
             try {
+                const { jsPDF } = window.jspdf;
                 const doc = new jsPDF();
 
                 doc.setFontSize(22);
@@ -814,46 +830,21 @@
                 doc.setTextColor(100);
                 doc.text("Generated on: " + new Date().toLocaleDateString(), 14, 28);
 
-                const tableData = tasks.map(task => [
+                const tableData = tasks.map((task, index) => [
+                    index + 1,
                     task.description,
-                    task.dueDate,
+                    task.dueDate || 'No due date',
                     task.priority,
-                    task.completed ? "Completed" : "Pending",
-                    "", // Empty column for notes in the table
+                    task.completed ? "Completed" : "Pending"
                 ]);
 
                 doc.autoTable({
                     startY: 35,
-                    head: [['Description', 'Due Date', 'Priority', 'Status', 'Notes']],
+                    head: [['#', 'Description', 'Due Date', 'Priority', 'Status']],
                     body: tableData,
                     theme: 'striped',
-                    headStyles: { fillColor: '#3B82F6' },
-                    styles: { fontSize: 10, cellPadding: 3 },
-                });
-
-                // Add notes section with bullets after the table
-                const finalY = doc.autoTable.previous.finalY;
-                const lineHeight = 5;
-                const bulletPoint = '• ';
-                let currentY = finalY + 15;
-                
-                // Add a notes section for each task
-                tasks.forEach((task, index) => {
-                    if (currentY + (3 * lineHeight) > 280) { // Check for page break
-                        doc.addPage();
-                        currentY = 20;
-                    }
-                    doc.setFontSize(12);
-                    doc.setTextColor(0);
-                    doc.text(`Notes for Task ${index + 1}: ${task.description}`, 14, currentY);
-                    currentY += lineHeight;
-                    doc.setFontSize(10);
-                    doc.setTextColor(100);
-                    for (let i = 0; i < 3; i++) {
-                        doc.text(bulletPoint, 20, currentY);
-                        currentY += lineHeight;
-                    }
-                    currentY += 5; // Add extra space between tasks
+                    headStyles: { fillColor: [59, 130, 246] },
+                    styles: { fontSize: 10, cellPadding: 3 }
                 });
 
                 doc.save('my-tasks.pdf');
@@ -869,6 +860,7 @@
         async function exportOrdersToPDF() {
             showLoading('Generating orders PDF...');
             try {
+                const { jsPDF } = window.jspdf;
                 const doc = new jsPDF();
 
                 doc.setFontSize(22);
@@ -877,21 +869,22 @@
                 doc.setTextColor(100);
                 doc.text("Generated on: " + new Date().toLocaleDateString(), 14, 28);
 
-                const tableData = orders.map(order => [
+                const tableData = orders.map((order, index) => [
+                    index + 1,
                     order.description,
                     order.customer,
-                    order.origin, // New column for origin
+                    order.origin,
                     order.type,
                     order.status
                 ]);
 
                 doc.autoTable({
                     startY: 35,
-                    head: [['Description', 'Customer', 'Origin', 'Type', 'Status']],
+                    head: [['#', 'Description', 'Customer', 'Origin', 'Type', 'Status']],
                     body: tableData,
                     theme: 'striped',
-                    headStyles: { fillColor: '#3B82F6' },
-                    styles: { fontSize: 10, cellPadding: 3 },
+                    headStyles: { fillColor: [59, 130, 246] },
+                    styles: { fontSize: 9, cellPadding: 2 }
                 });
 
                 doc.save('my-orders.pdf');
@@ -936,36 +929,57 @@
         // Filter button handlers
         filterAllTasks.addEventListener('click', () => {
             currentTaskFilter = 'all';
-            document.querySelectorAll('.task-filters button').forEach(btn => btn.classList.remove('bg-blue-500', 'text-white'));
+            document.querySelectorAll('.task-filters button').forEach(btn => {
+                btn.classList.remove('bg-blue-500', 'text-white');
+                btn.classList.add('bg-gray-200', 'text-gray-700');
+            });
+            filterAllTasks.classList.remove('bg-gray-200', 'text-gray-700');
             filterAllTasks.classList.add('bg-blue-500', 'text-white');
             renderTasks();
         });
 
         filterPendingTasks.addEventListener('click', () => {
             currentTaskFilter = 'pending';
-            document.querySelectorAll('.task-filters button').forEach(btn => btn.classList.remove('bg-blue-500', 'text-white'));
+            document.querySelectorAll('.task-filters button').forEach(btn => {
+                btn.classList.remove('bg-blue-500', 'text-white');
+                btn.classList.add('bg-gray-200', 'text-gray-700');
+            });
+            filterPendingTasks.classList.remove('bg-gray-200', 'text-gray-700');
             filterPendingTasks.classList.add('bg-blue-500', 'text-white');
             renderTasks();
         });
 
         filterCompletedTasks.addEventListener('click', () => {
             currentTaskFilter = 'completed';
-            document.querySelectorAll('.task-filters button').forEach(btn => btn.classList.remove('bg-blue-500', 'text-white'));
+            document.querySelectorAll('.task-filters button').forEach(btn => {
+                btn.classList.remove('bg-blue-500', 'text-white');
+                btn.classList.add('bg-gray-200', 'text-gray-700');
+            });
+            filterCompletedTasks.classList.remove('bg-gray-200', 'text-gray-700');
             filterCompletedTasks.classList.add('bg-blue-500', 'text-white');
             renderTasks();
         });
 
         filterHighTasks.addEventListener('click', () => {
             currentTaskFilter = 'high';
-            // FIX: Added the missing closing parenthesis ')' here
-            document.querySelectorAll('.task-filters button').forEach(btn => btn.classList.remove('bg-blue-500', 'text-white'));
+            document.querySelectorAll('.task-filters button').forEach(btn => {
+                btn.classList.remove('bg-blue-500', 'text-white');
+                btn.classList.add('bg-gray-200', 'text-gray-700');
+            });
+            filterHighTasks.classList.remove('bg-gray-200', 'text-gray-700');
             filterHighTasks.classList.add('bg-blue-500', 'text-white');
             renderTasks();
         });
 
+        // Make functions globally accessible for onclick handlers
+        window.toggleTaskStatus = toggleTaskStatus;
+        window.editTask = editTask;
+        window.deleteTask = deleteTask;
+        window.editOrder = editOrder;
+        window.deleteOrder = deleteOrder;
+
         // Initial data load on page load
-        window.addEventListener('DOMContentLoaded', loadDataFromLocalStorage);
+        window.addEventListener('DOMContentLoaded', loadData);
     </script>
 </body>
 </html>
-
